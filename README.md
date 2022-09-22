@@ -1,6 +1,6 @@
 ## brother_pt
 
-Related [blog post](). This is work in progress...
+Related [blog post](https://www.reidemeister.com/?p=544). This is work in progress...
 
 A Python package to control Brother PT label printers. This library
 implements the raster control set those printers and allows to 
