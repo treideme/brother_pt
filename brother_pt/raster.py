@@ -13,3 +13,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
+from .cmd import MediaWidthToTapeMargin
+
+
+def raster_png(filename: str, media_width: int):
+    pass

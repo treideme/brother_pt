@@ -32,6 +32,16 @@ class StatusOffsets(IntEnum):
     HARDWARE_SETTINGS = 26
 
 
+MediaWidthToTapeMargin = {
+    4: 52,  # 3.5mm
+    6: 48,  # 6mm
+    9: 39,  # 9mm
+    12: 29, # 12mm
+    18: 8,  # 19mm
+    24: 0,  # 24mm
+}
+
+
 class ErrorInformation1(IntFlag):
     NO_MEDIA = 0x01
     CUTTER_JAM = 0x04
@@ -153,17 +163,17 @@ def enable_status_notification():
     return b"\x1B\x69\x21\x00"
 
 
-def print_information(data):
+def print_information(data: bytes):
     # print to 24mm tape [1B 69 7A {84 00 18 00 <data length 4 bytes> 00 00}]
     return b"\x1B\x69\x7A\x84\x00\x18\x00" + \
            (len(data) >> 4).to_bytes(4, 'little') + \
            b"\x00\x00"
 
 
-def set_mode():
+def set_mode(mode: Mode = Mode.AUTO_CUT):
     # set to auto-cut, no mirror printing [1B 69 4D {40}]
     return b"\x1B\x69\x4D" +\
-        Mode.AUTO_CUT.to_bytes(1, "big")
+        mode.to_bytes(1, "big")
 
 
 def set_advanced_mode():
@@ -171,9 +181,9 @@ def set_advanced_mode():
     return b"\x1B\x69\x4B\x08"
 
 
-def margin_amount():
+def margin_amount(dots: int = 0):
     # set margin (feed) amount to 0 [1B 69 64 {00 00}]
-    return b"\x1B\x69\x64\x00\x00"
+    return b"\x1B\x69\x64"+dots.to_bytes(2, 'little')
 
 
 def select_compression_mode():
@@ -181,10 +191,10 @@ def select_compression_mode():
     return b"\x4D\x02"
 
 
-def send_raster_data(raserized_image):
+def send_raster_data(rasterized_image):
     res = b''
     # send all raster data lines
-    for line in raserized_image:
+    for line in rasterized_image:
         res += bytes(line)
 
 
