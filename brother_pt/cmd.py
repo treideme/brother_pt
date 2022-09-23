@@ -15,6 +15,7 @@
 """
 from enum import IntEnum, IntFlag
 
+HEAD_PINS = 128
 
 class StatusOffsets(IntEnum):
     ERROR_INFORMATION_1 = 8
@@ -32,14 +33,19 @@ class StatusOffsets(IntEnum):
     HARDWARE_SETTINGS = 26
 
 
-MediaWidthToTapeMargin = {
-    4: 52,  # 3.5mm
-    6: 48,  # 6mm
-    9: 39,  # 9mm
-    12: 29, # 12mm
-    18: 8,  # 19mm
-    24: 0,  # 24mm
-}
+class MediaWidthToTapeMargin:
+    margin = {
+        4: 52,  # 3.5mm
+        6: 48,  # 6mm
+        9: 39,  # 9mm
+        12: 29, # 12mm
+        18: 8,  # 19mm
+        24: 0,  # 24mm
+    }
+
+    @staticmethod
+    def to_print_width(tape_width: int):
+        return HEAD_PINS - MediaWidthToTapeMargin.margin[tape_width] * 2
 
 
 class ErrorInformation1(IntFlag):

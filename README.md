@@ -7,7 +7,7 @@ implements the raster control set those printers and allows to
 configure these printers.
 
 In particular, the following is supported:
- * Raster image files for direct printing
+ * Raster image files for direct printing on TZe tape, heat-shrink tube is still work in progress
  * You can print image files directly from a Python script 
  * Supported backends
     * pyusb
@@ -19,7 +19,7 @@ The following printers are supported by this package (✓ means verified by the 
  * PT-E550W
  * PT-P750W 
 
-Planned (not supported)
+Planned (not officially supported yet)
  * PT-P900
  * PT-P900W
  * PT-P950NW
