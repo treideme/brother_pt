@@ -15,7 +15,20 @@
 """
 from enum import IntEnum, IntFlag
 
-HEAD_PINS = 128
+PRINT_HEAD_PINS = 128
+USBID_BROTHER = 0x04f9
+USB_OUT_EP_ID = 0x2
+USB_IN_EP_ID = 0x81
+USB_TRX_TIMEOUT_MS = 15000
+
+
+class SupportedPrinterIDs(IntEnum):
+    E550W = 0x2060
+    P750W = 0x2062
+    P710BT = 0x20af
+
+
+STATUS_MESSAGE_LENGTH = 32
 
 class StatusOffsets(IntEnum):
     ERROR_INFORMATION_1 = 8
@@ -45,7 +58,7 @@ class MediaWidthToTapeMargin:
 
     @staticmethod
     def to_print_width(tape_width: int):
-        return HEAD_PINS - MediaWidthToTapeMargin.margin[tape_width] * 2
+        return PRINT_HEAD_PINS - MediaWidthToTapeMargin.margin[tape_width] * 2
 
 
 class ErrorInformation1(IntFlag):
@@ -192,16 +205,17 @@ def margin_amount(dots: int = 0):
     return b"\x1B\x69\x64"+dots.to_bytes(2, 'little')
 
 
-def select_compression_mode():
+def set_compression_mode():
     # set to TIFF compression [4D {02}]
     return b"\x4D\x02"
 
 
-def send_raster_data(rasterized_image):
+def set_raster_data(rasterized_image):
     res = b''
     # send all raster data lines
     for line in rasterized_image:
         res += bytes(line)
+    return res
 
 
 def print_with_feeding():

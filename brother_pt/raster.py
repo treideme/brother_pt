@@ -14,7 +14,7 @@
    limitations under the License.
 """
 from PIL import Image
-from .cmd import MediaWidthToTapeMargin, HEAD_PINS
+from .cmd import MediaWidthToTapeMargin, PRINT_HEAD_PINS
 
 
 # FIXME: test
@@ -62,28 +62,29 @@ def compress_buffer(buffer: bytearray):
     return bits
 
 
-def raster_png(filename: str, media_width: int):
-    with Image.open(filename) as image:
-        width, height = image.width, image.height
-        image = make_fit(image, media_width)
-        # Image doesn't fit the tape width
-        if image is None:
-            # FIXME: provide option for scaling
-            expected_height = MediaWidthToTapeMargin.to_print_width(media_width)
-            raise AttributeError("At least one dimension needs to fit the tape width: %i vs (%i, %i)" %
-                                 (expected_height, width, height))
+def raster_image(image: Image, media_width: int):
+    width, height = image.width, image.height
+    image = make_fit(image, media_width)
+    # Image doesn't fit the tape width
+    if image is None:
+        # FIXME: provide option for scaling
+        expected_height = MediaWidthToTapeMargin.to_print_width(media_width)
+        raise AttributeError("At least one dimension needs to fit the tape width: %i vs (%i, %i)" %
+                             (expected_height, width, height))
 
-        # Print buffer
-        buffer = bytearray()
+    # Print buffer
+    buffer = bytearray()
 
-        # Compose raster template
-        for column in range(image.width):
-            # Leading margin of print head
-            buffer += b'\x00'*MediaWidthToTapeMargin.margin[media_width]
+    # Compose raster template
+    for column in range(image.width):
+        # Leading margin of print head
+        buffer += b'\x00'*MediaWidthToTapeMargin.margin[media_width]
 
-            # printable raster
-            for row in range(image.height):
-                buffer += b'\xFF' if image.getpixel((column, row)) else b'\00'
+        # printable raster
+        for row in range(image.height):
+            buffer += b'\xFF' if image.getpixel((column, row)) else b'\00'
 
-            # Trailing margin of print head
-            buffer += b'\x00' * MediaWidthToTapeMargin.margin[media_width]
+        # Trailing margin of print head
+        buffer += b'\x00' * MediaWidthToTapeMargin.margin[media_width]
+
+    return compress_buffer(buffer)
