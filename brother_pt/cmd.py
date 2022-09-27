@@ -19,6 +19,7 @@ from enum import IntEnum, IntFlag
 PRINT_HEAD_PINS = 128
 USBID_BROTHER = 0x04f9
 LINE_LENGTH_BYTES = 0x10
+MINIMUM_TAPE_POINTS = 174 # 25.4 mm @ 180dpi
 USB_OUT_EP_ID = 0x2
 USB_IN_EP_ID = 0x81
 USB_TRX_TIMEOUT_MS = 15000
@@ -212,7 +213,7 @@ def set_compression_mode():
     return b"\x4D\x02"
 
 
-def gen_raster_commands(rasterized_image):
+def gen_raster_commands(rasterized_image: bytes):
     raster_cmd = b'\x47'
     zero_cmd = b'\x5A'
     cmd_buffer = []

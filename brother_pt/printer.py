@@ -16,6 +16,7 @@
 import sys
 
 import usb.core
+import warnings
 
 from PIL import Image
 from .cmd import *
@@ -74,8 +75,11 @@ class BrotherPt:
     def update_status(self):
         self.__write(invalidate())
         self.__write(initialize())
-        self.__write(status_information_request())
-        status_information = self.__read(STATUS_MESSAGE_LENGTH)
+        status_information = b''
+        while len(status_information) == 0:
+            self.__write(status_information_request())
+            status_information = self.__read(STATUS_MESSAGE_LENGTH)
+
         self._media_width = status_information[StatusOffsets.MEDIA_WIDTH]
         self._media_type = MediaType(status_information[StatusOffsets.MEDIA_TYPE])
         self._tape_color = TapeColor(status_information[StatusOffsets.TAPE_COLOR_INFORMATION])
@@ -97,20 +101,30 @@ class BrotherPt:
     def text_color(self) -> TextColor:
         return self._text_color
 
-    def print_image(self, image: Image):
+    def print_image(self, image: Image, margin_px: int = 0):
         self.update_status()
+        image = prepare_image(image, self.media_width)
+        if (image.width + margin_px) < MINIMUM_TAPE_POINTS:
+            warnings.warn("Image (%i) + cut margin (%i) is smaller than minimum tape width (%i) ... "
+                          "cutting length will be extended" % (image.width, margin_px, MINIMUM_TAPE_POINTS))
         data = raster_image(image, self.media_width)
         self.__write(enter_dynamic_command_mode())
         self.__write(enable_status_notification())
         self.__write(print_information(data))
         self.__write(set_mode())
         self.__write(set_advanced_mode())
-        self.__write(margin_amount())
+        self.__write(margin_amount(margin_px))
         self.__write(set_compression_mode())
         for cmd in gen_raster_commands(data):
             self.__write(cmd)
         self.__write(print_with_feeding())
-        # FIXME: Handle status responses
+        while True:
+            res = self.__read()
+            if len(res) > 0:
+                if res[StatusOffsets.STATUS_TYPE] == StatusType.PRINTING_COMPLETED:
+                    # absorb phase change message
+                    self.__read()
+                    break
 
 
 if __name__ == '__main__':
