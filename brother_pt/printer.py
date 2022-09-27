@@ -58,20 +58,18 @@ class BrotherPt:
     def __write(self, data: bytes) -> int:
         length = 0
         while length < len(data):
-            length += self._dev.write(USB_OUT_EP_ID, data[length:], USB_TRX_TIMEOUT_MS)
+            # chunk into packet size
+            length += self._dev.write(USB_OUT_EP_ID, data[length:(length+0x40)], USB_TRX_TIMEOUT_MS)
             if length == 0:
                 raise RuntimeError("IO timeout while writing to printer")
         return length
 
-    def __read(self, length: int) -> bytes:
-        # FIXME: Refactor as this https://www.reddit.com/r/learnpython/comments/5jdp1c/how_can_i_stop_pyusb_from_reading_if_nothing/
-        data_in = b''
-        while len(data_in) < length:
-            try:
-                data = self._dev.read(USB_IN_EP_ID, length - len(data_in), USB_TRX_TIMEOUT_MS)
-            except usb.core.USBError as e:
-                raise RuntimeError("IO timeout while reading from printer")
-        return data_in
+    def __read(self, length: int = 0x80) -> bytes:
+        try:
+            data = self._dev.read(USB_IN_EP_ID, length, USB_TRX_TIMEOUT_MS)
+        except usb.core.USBError as e:
+            raise RuntimeError("IO timeout while reading from printer")
+        return data
 
     def update_status(self):
         self.__write(invalidate())
@@ -107,11 +105,10 @@ class BrotherPt:
         self.__write(print_information(data))
         self.__write(set_mode())
         self.__write(set_advanced_mode())
-        self.__read(32)
-        print(1)
         self.__write(margin_amount())
         self.__write(set_compression_mode())
-        self.__write(set_raster_data(data))
+        for cmd in gen_raster_commands(data):
+            self.__write(cmd)
         self.__write(print_with_feeding())
         # FIXME: Handle status responses
 

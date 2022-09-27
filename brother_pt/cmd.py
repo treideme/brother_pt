@@ -13,10 +13,12 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
+import packbits
 from enum import IntEnum, IntFlag
 
 PRINT_HEAD_PINS = 128
 USBID_BROTHER = 0x04f9
+LINE_LENGTH_BYTES = 0x10
 USB_OUT_EP_ID = 0x2
 USB_IN_EP_ID = 0x81
 USB_TRX_TIMEOUT_MS = 15000
@@ -210,12 +212,24 @@ def set_compression_mode():
     return b"\x4D\x02"
 
 
-def set_raster_data(rasterized_image):
-    res = b''
+def gen_raster_commands(rasterized_image):
+    raster_cmd = b'\x47'
+    zero_cmd = b'\x5A'
+    cmd_buffer = []
     # send all raster data lines
-    for line in rasterized_image:
-        res += bytes(line)
-    return res
+    for i in range(0, len(rasterized_image), LINE_LENGTH_BYTES):
+        line = rasterized_image[i:i + LINE_LENGTH_BYTES]
+        if line == b'\x00'*LINE_LENGTH_BYTES:
+            cmd_buffer.append(zero_cmd)
+        else:
+            packed_line = packbits.encode(line)
+
+            cmd = raster_cmd +\
+                  len(packed_line).to_bytes(2, "little") +\
+                  packed_line
+            cmd_buffer.append(cmd)
+
+    return cmd_buffer
 
 
 def print_with_feeding():
