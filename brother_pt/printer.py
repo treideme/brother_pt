@@ -18,26 +18,30 @@ import sys
 import usb.core
 import warnings
 
-from PIL import Image
 from .cmd import *
 from .raster import *
 
 
+def find_printers(serial=None):
+    found_printers = []
+    for product_id in SupportedPrinterIDs:
+        dev = usb.core.find(idVendor=USBID_BROTHER, idProduct=product_id)
+        if dev is not None:
+            if serial is not None:
+                if serial == dev.serial_number:
+                    found_printers.append(dev)
+                else:
+                    continue
+            else:
+                found_printers.append(dev)
+
+    return found_printers
+
+
 class BrotherPt:
     def __init__(self, serial: str = None):
-        dev = None
-        for product_id in SupportedPrinterIDs:
-            dev = usb.core.find(idVendor=USBID_BROTHER, idProduct=product_id)
-            if dev is not None:
-                if serial is not None:
-                    if serial == dev.serial_number:
-                        break
-                    else:
-                        continue
-                else:
-                    break
-
-        if dev is None:
+        printers = find_printers(serial)
+        if len(printers) == 0:
             raise RuntimeError("No supported driver found")
 
         self._media_width = None
@@ -45,7 +49,7 @@ class BrotherPt:
         self._tape_color = None
         self._text_color = None
 
-        self._dev = dev
+        self._dev = printers[0]
         self.__initialize()
 
     def __initialize(self):
@@ -101,13 +105,7 @@ class BrotherPt:
     def text_color(self) -> TextColor:
         return self._text_color
 
-    def print_image(self, image: Image, margin_px: int = 0):
-        self.update_status()
-        image = prepare_image(image, self.media_width)
-        if (image.width + margin_px) < MINIMUM_TAPE_POINTS:
-            warnings.warn("Image (%i) + cut margin (%i) is smaller than minimum tape width (%i) ... "
-                          "cutting length will be extended" % (image.width, margin_px, MINIMUM_TAPE_POINTS))
-        data = raster_image(image, self.media_width)
+    def print_data(self, data:bytes, margin_px:int):
         self.__write(enter_dynamic_command_mode())
         self.__write(enable_status_notification())
         self.__write(print_information(data))
@@ -125,6 +123,15 @@ class BrotherPt:
                     # absorb phase change message
                     self.__read()
                     break
+
+    def print_image(self, image: Image, margin_px: int = 0):
+        self.update_status()
+        image = prepare_image(image, self.media_width)
+        if (image.width + margin_px) < MINIMUM_TAPE_POINTS:
+            warnings.warn("Image (%i) + cut margin (%i) is smaller than minimum tape width (%i) ... "
+                          "cutting length will be extended" % (image.width, margin_px, MINIMUM_TAPE_POINTS))
+        data = raster_image(image, self.media_width)
+        self.print_data(data, margin_px)
 
 
 if __name__ == '__main__':

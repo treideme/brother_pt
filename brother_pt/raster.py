@@ -28,8 +28,24 @@ def make_fit(image: Image, media_width: int):
     return image
 
 
-# FIXME: Test
+def has_transparency(img):
+    if img.info.get("transparency", None) is not None:
+        return True
+    if img.mode == "P":
+        transparent = img.info.get("transparency", -1)
+        for _, index in img.getcolors():
+            if index == transparent:
+                return True
+
+
 def select_raster_channel(image: Image):
+    # Special handling for paletized images
+    if image.mode == 'P':
+        if has_transparency(image):
+            image = image.convert('RGBA')
+        else:
+            image = image.convert('RGB')
+
     if image.mode == '1':
         # BW
         return image

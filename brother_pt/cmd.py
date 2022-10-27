@@ -33,6 +33,7 @@ class SupportedPrinterIDs(IntEnum):
 
 STATUS_MESSAGE_LENGTH = 32
 
+
 class StatusOffsets(IntEnum):
     ERROR_INFORMATION_1 = 8
     ERROR_INFORMATION_2 = 9

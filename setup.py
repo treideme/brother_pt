@@ -13,3 +13,21 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
+
+from distutils.core import setup
+from brother_pt import VERSION
+
+setup(name='brother_pt',
+      version=VERSION,
+      description='Python package for the raster language protocol of the Brother PT series of connected label printers',
+      author='Thomas Reidemeister',
+      license='Apache 2.0',
+      url='https://github.com/treideme/brother_pt',
+      packages=['brother_pt'],
+      install_requires=[
+          'pyusb>=1.2.1',
+          'Pillow==8.4.0',
+          'packbits==0.6',
+      ],
+     )
+
