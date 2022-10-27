@@ -16,6 +16,7 @@
 import sys
 
 import usb.core
+import usb.util
 import warnings
 
 from .cmd import *
@@ -59,6 +60,9 @@ class BrotherPt:
 
         self._dev.set_configuration()
         self.update_status()
+
+    def __del__(self):
+        usb.util.dispose_resources(self._dev)
 
     def __write(self, data: bytes) -> int:
         length = 0
