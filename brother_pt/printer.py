@@ -112,7 +112,7 @@ class BrotherPt:
     def print_data(self, data:bytes, margin_px:int):
         self.__write(enter_dynamic_command_mode())
         self.__write(enable_status_notification())
-        self.__write(print_information(data))
+        self.__write(print_information(data, self.media_width))
         self.__write(set_mode())
         self.__write(set_advanced_mode())
         self.__write(margin_amount(margin_px))
@@ -127,6 +127,28 @@ class BrotherPt:
                     # absorb phase change message
                     self.__read()
                     break
+                elif res[StatusOffsets.STATUS_TYPE] == StatusType.ERROR_OCCURRED:
+                    error_message = ''
+                    if res[8]: # Error 1
+                        if res[8] & 0x01:
+                            error_message += 'no media|'
+                        if res[8] & 0x04:
+                            error_message += 'cutter jam|'
+                        if res[8] & 0x08:
+                            error_message += 'low batteries|'
+                        if res[8] & 0x40:
+                            error_message += 'high-voltage adapter|'
+                        pass
+                    if res[9]: # Error 2
+                        if res[9] & 0x01:
+                            error_message += 'wrong media (check size)|'
+                        if res[9] & 0x10:
+                            error_message += 'cover open|'
+                        if res[9] & 0x20:
+                            error_message += 'overheating|'
+                    if len(error_message) > 0:
+                        error_message = error_message[:-1]
+                    raise RuntimeError(error_message)
 
     def print_image(self, image: Image, margin_px: int = 0):
         self.update_status()

@@ -186,11 +186,12 @@ def enable_status_notification():
     return b"\x1B\x69\x21\x00"
 
 
-def print_information(data: bytes):
-    # print to 24mm tape [1B 69 7A {84 00 18 00 <data length 4 bytes> 00 00}]
-    return b"\x1B\x69\x7A\x84\x00\x18\x00" + \
+def print_information(data: bytes, media_width_mm: int):
+    # print to arbitrary-width tape [1B 69 7A {84 00 <width> 00 <data length 4 bytes> 00 00}]
+    data = b"\x1B\x69\x7A\x84\x00"+media_width_mm.to_bytes(1, 'little')+b"\x00" + \
            (len(data) >> 4).to_bytes(4, 'little') + \
            b"\x00\x00"
+    return data
 
 
 def set_mode(mode: Mode = Mode.AUTO_CUT):
@@ -225,7 +226,6 @@ def gen_raster_commands(rasterized_image: bytes):
             cmd_buffer.append(zero_cmd)
         else:
             packed_line = packbits.encode(line)
-
             cmd = raster_cmd +\
                   len(packed_line).to_bytes(2, "little") +\
                   packed_line
