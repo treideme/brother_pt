@@ -57,7 +57,7 @@ can be found [here](http://www.brother.com/product/dev/index.htm).
 ## Installation
 
 ```bash
-pip install --upgrade https://github.com/treideme/brother_pt/archive/master.zip
+pip install --upgrade git+https://github.com/treideme/brother_pt.git
 ```
 
 ## Usage
