@@ -17,7 +17,8 @@ import argparse
 
 from brother_pt import VERSION
 from .printer import *
-
+from .cmd import *
+from .font import *
 
 def show_status(serial):
     printers = find_printers(serial)
@@ -27,6 +28,7 @@ def show_status(serial):
     found_printer = BrotherPt(printers[0].serial_number)
     print("%s %s (%s):" % (printers[0].manufacturer, printers[0].product, printers[0].serial_number))
     print(" + Media width: %dmm" % found_printer.media_width)
+    print("                (%dpx)" % MediaWidthToTapeMargin.to_print_width(found_printer.media_width))
     print(" + Media type : %s" % found_printer.media_type.name)
     print(" + Tape color : %s" % found_printer.tape_color.name)
     print(" + Text color : %s" % found_printer.text_color.name)
@@ -85,6 +87,35 @@ def do_print(args):
     return 0
 
 
+def do_text(args):
+    printers = find_printers(args.printer)
+    if len(printers) == 0:
+        print("No supported printers found, make sure the device is switched on", file=sys.stderr)
+        return 1
+
+    found_printer = BrotherPt(printers[0].serial_number)
+    required_height = MediaWidthToTapeMargin.to_print_width(found_printer.media_width)
+    
+    font = Font(pattern = args.font, size = args.size)
+    image = font.render_text(args.text, height = required_height, center = True).pixels
+
+    # Margin check
+    margin = args.margin
+    if (image.width + margin) < MINIMUM_TAPE_POINTS:
+        print("Image (%i) + cut margin (%i) is smaller than minimum tape width (%i) ...\n"
+              "cutting length will be extended" % (image.width, margin, MINIMUM_TAPE_POINTS))
+        margin = MINIMUM_TAPE_POINTS - image.width
+
+    # Raster image
+    data = raster_image(image, found_printer.media_width)
+    image.show()
+    return
+
+    found_printer.print_data(data, margin)
+
+    return 0
+
+
 def list_printers(serial):
     printers = find_printers(serial)
     if len(printers) == 0:
@@ -120,7 +151,7 @@ def cli():
     discover.set_defaults(cmd='info')
 
     # Complex subparsers
-    print_menu = subparsers.add_parser('print')
+    print_menu = subparsers.add_parser('print', help="Print an image")
     print_menu.add_argument("-r", "--rotate", default='auto',
                             choices=['auto', '0', '90', '180', '270'],
                             help='Rotate the image (counter clock-wise) by this amount of degrees. '
@@ -132,6 +163,14 @@ def cli():
                             help="Print margin in dots.")
     print_menu.add_argument("-f", "--file", type=str, required=True, help="Image file to print")
     print_menu.set_defaults(cmd='print')
+
+    text_menu = subparsers.add_parser('text', help="Print some text")
+    text_menu.add_argument("-m", "--margin", type=int, default=30,
+                           help="Print margin in dots.")
+    text_menu.add_argument("-f", "--font", type=str, default="Arial", help="Font face (ok, actually, fontconfig pattern)")
+    text_menu.add_argument("-s", "--size", type=int, default=24, help="Font size")
+    text_menu.add_argument("text", type=str, help="Text to print")
+    text_menu.set_defaults(cmd='text')
 
     args = parser.parse_args()
 
@@ -155,6 +194,8 @@ def cli():
             return 0
     elif args.cmd == 'print':
         return do_print(args)
+    elif args.cmd == 'text':
+        return do_text(args)
 
     return 0
 
