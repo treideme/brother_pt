@@ -108,8 +108,9 @@ def do_text(args):
 
     # Raster image
     data = raster_image(image, found_printer.media_width)
-    image.show()
-    return
+    if args.preview:
+        image.show()
+        return
 
     found_printer.print_data(data, margin)
 
@@ -165,10 +166,11 @@ def cli():
     print_menu.set_defaults(cmd='print')
 
     text_menu = subparsers.add_parser('text', help="Print some text")
-    text_menu.add_argument("-m", "--margin", type=int, default=30,
+    text_menu.add_argument("-m", "--margin", type=int, default=50,
                            help="Print margin in dots.")
     text_menu.add_argument("-f", "--font", type=str, default="Arial", help="Font face (ok, actually, fontconfig pattern)")
     text_menu.add_argument("-s", "--size", type=int, default=24, help="Font size")
+    text_menu.add_argument("--preview", action='store_true', help="just show a preview, don't print a label")
     text_menu.add_argument("text", type=str, help="Text to print")
     text_menu.set_defaults(cmd='text')
 

@@ -216,7 +216,9 @@ class Font(object):
             glyph = self.glyph_for_glyphid(info.codepoint)
             max_ascent = max(max_ascent, glyph.ascent)
             max_descent = max(max_descent, glyph.descent)
-            width += ceil(pos.x_advance / 64)
+            width += pos.x_advance // 64
+        width -= pos.x_advance // 64
+        width += glyph.width
 
         height = max_ascent + max_descent
         return (width, height, max_descent)
@@ -244,7 +246,7 @@ class Font(object):
             if width > new_width:
                 x_offset = (width - new_width) // 2
             if height > new_height:
-                y_offset = (height - new_height) // 2
+                y_offset = (height - (new_height - new_baseline)) // 2 - new_baseline
 
         x = 0
         previous_char = None
