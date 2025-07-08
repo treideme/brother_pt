@@ -96,8 +96,35 @@ def do_text(args):
     found_printer = BrotherPt(printers[0].serial_number)
     required_height = MediaWidthToTapeMargin.to_print_width(found_printer.media_width)
     
-    font = Font(pattern = args.font, size = args.size)
-    image = font.render_text(args.text, height = required_height, center = True).pixels
+    FONT_DEFAULTS = [
+        ( "Helsinki Narrow:style=Bold", 40, 6 ),
+        ( "Helsinki", 22, 8 ),
+        ( "Helsinki", 22, 4 ),
+        
+    ]
+    baseline_spacing = 4
+       
+    fontpattern = args.font
+    fontsize = args.size
+    if not fontpattern or not fontsize:
+        # Try to pick some sensible defaults.
+        nlines = 1
+        print(f"{nlines} lines on media size {required_height} px")
+        for fontpattern, fontsize, baseline_spacing in FONT_DEFAULTS:
+            font = Font(pattern = fontpattern, size = fontsize)
+            totheight = 0
+            for t in args.text:
+                if totheight:
+                    totheight += baseline_spacing
+                w,h,baseline = font.text_dimensions(t)
+                totheight += h
+            print(f"{fontpattern} @ {fontsize} is {totheight} px")
+            if totheight <= required_height:
+                print("that fits, good enough for me")
+                break
+    else:
+        font = Font(pattern = fontpattern, size = fontsize)
+    image = font.render_texts(args.text, height = required_height, vcenter = True, hcenter = False, spacing = baseline_spacing).pixels
 
     # Margin check
     margin = args.margin
@@ -168,10 +195,10 @@ def cli():
     text_menu = subparsers.add_parser('text', help="Print some text")
     text_menu.add_argument("-m", "--margin", type=int, default=50,
                            help="Print margin in dots.")
-    text_menu.add_argument("-f", "--font", type=str, default="Arial", help="Font face (ok, actually, fontconfig pattern)")
-    text_menu.add_argument("-s", "--size", type=int, default=24, help="Font size")
+    text_menu.add_argument("-f", "--font", type=str, default=None, help="Font face (ok, actually, fontconfig pattern)")
+    text_menu.add_argument("-s", "--size", type=int, default=None, help="Font size")
     text_menu.add_argument("--preview", action='store_true', help="just show a preview, don't print a label")
-    text_menu.add_argument("text", type=str, help="Text to print")
+    text_menu.add_argument("text", nargs='+', help="Text to print")
     text_menu.set_defaults(cmd='text')
 
     args = parser.parse_args()

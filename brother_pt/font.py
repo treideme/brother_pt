@@ -212,7 +212,7 @@ class Font(object):
         # For each character in the text string we get the glyph
         # and update the overall dimensions of the resulting bitmap.
         for info, pos in zip(hb_buf.glyph_infos, hb_buf.glyph_positions):
-            print(self.harfbuzz.hbfont.glyph_to_string(info.codepoint), info.cluster, pos.x_advance, pos.x_offset, pos.y_offset)
+            # print(self.harfbuzz.hbfont.glyph_to_string(info.codepoint), info.cluster, pos.x_advance, pos.x_offset, pos.y_offset)
             glyph = self.glyph_for_glyphid(info.codepoint)
             max_ascent = max(max_ascent, glyph.ascent)
             max_descent = max(max_descent, glyph.descent)
@@ -267,24 +267,28 @@ class Font(object):
 
         return outbuffer
 
-    def render_texts(self, texts, width=None, height=None, baseline=None, center=True, spacing=2):
+    def render_texts(self, texts, width=None, height=None, baseline=None, vcenter=True, hcenter = True, spacing=2):
 
         outbuffer = None
+        last_baseline = 0
 
         for text in texts:
+            # save the baseline for later, because we want to V-center from
+            # top ascender to bottom baseline (!)
+            new_width, new_height, last_baseline = self.text_dimensions(text)
             text_buffer = self.render_text(text, baseline=baseline)
             if outbuffer:
                 cur_height = outbuffer.height
                 new_buffer = Bitmap(max(text_buffer.width, outbuffer.width),
                                     text_buffer.height + cur_height + spacing)
-                if center:
+                if hcenter:
                     x_offset = (new_buffer.width - outbuffer.width) // 2
                 else:
                     x_offset = 0
                 new_buffer.bitblt(outbuffer, x_offset, 0)
                 outbuffer = new_buffer
 
-                if center:
+                if hcenter:
                     x_offset = (outbuffer.width - text_buffer.width) // 2
                 else:
                     x_offset = 0
@@ -294,12 +298,14 @@ class Font(object):
 
         width = width or outbuffer.width
         height = height or outbuffer.height
-        if center:
+        if vcenter:
+            y_offset = (height - (outbuffer.height - last_baseline)) // 2
+        else:
+            y_offset = 0
+        if hcenter:
             x_offset = (width - outbuffer.width) // 2
-            y_offset = (height - outbuffer.height) // 2
         else:
             x_offset = 0
-            y_offset = 0
         final_buffer = Bitmap(width, height)
         final_buffer.bitblt(outbuffer, x_offset, y_offset)
 
@@ -323,8 +329,8 @@ if __name__ == '__main__':
     print(repr(fnt.render_text('hello,', 64, 32, 2, center=True)))
 
     # Choosing the baseline correctly
-    print(repr(fnt.render_text('hello, .gjp', 64, 32, 2, center=True)))
-    print(repr(fnt.render_texts(['hello, world.', 'gjp'], 64, 48, 2, center=False, spacing=4)))
+    print(repr(fnt.render_texts(['hello, .gjp'], 64, 32, center=True)))
+    print(repr(fnt.render_texts(['hello, world.', 'gjp'], 128, 64, center=True, spacing=4)))
 
     print(fnt.render_text('e'))
     print(fnt.render_text('e').pixels)
