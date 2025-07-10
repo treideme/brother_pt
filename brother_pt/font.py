@@ -6,6 +6,7 @@
 # http://dbader.org/blog/monochrome-font-rendering-with-freetype-and-python
 
 # Updated by Joseph Solomon 2016
+# Hacked to bits by Joshua Wise 2024
 
 # The MIT License (MIT)
 #

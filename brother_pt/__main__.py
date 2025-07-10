@@ -15,6 +15,8 @@
 """
 import argparse
 
+import PIL.ImageOps
+
 from brother_pt import VERSION
 from .printer import *
 from .cmd import *
@@ -100,13 +102,26 @@ def do_text(args):
         ( "Helsinki Narrow:style=Bold", 40, 6 ),
         ( "Helsinki", 22, 8 ),
         ( "Helsinki", 22, 4 ),
-        
     ]
     baseline_spacing = 4
-       
+    
     fontpattern = args.font
     fontsize = args.size
-    if not fontpattern or not fontsize:
+    if args.font and args.font.isdigit():
+        # The font is a number -- so we choose it as an index into
+        # FONT_DEFAULTS.
+        fontpattern, fontsize, baseline_spacing = FONT_DEFAULTS[int(args.font)]
+        font = Font(pattern = fontpattern, size = fontsize)
+        totheight = 0
+        for t in args.text:
+            if totheight:
+                totheight += baseline_spacing
+            w,h,baseline = font.text_dimensions(t)
+            totheight += h
+        if totheight > required_height:
+            print(f"text does not fit on label with font {args.font} -- total height is {totheight} px, but label is {required_height} px!")
+            return 1
+    elif not fontpattern or not fontsize:
         # Try to pick some sensible defaults.
         nlines = 1
         print(f"{nlines} lines on media size {required_height} px")
@@ -133,11 +148,15 @@ def do_text(args):
               "cutting length will be extended" % (image.width, margin, MINIMUM_TAPE_POINTS))
         margin = MINIMUM_TAPE_POINTS - image.width
 
+    if args.preview:
+        w,h = image.size
+        im2 = Image.new('L', (w + margin * 2, h), 0)
+        im2.paste(image, (margin, 0))
+        PIL.ImageOps.invert(im2).show()
+        return
+
     # Raster image
     data = raster_image(image, found_printer.media_width)
-    if args.preview:
-        image.show()
-        return
 
     found_printer.print_data(data, margin)
 
@@ -195,7 +214,7 @@ def cli():
     text_menu = subparsers.add_parser('text', help="Print some text")
     text_menu.add_argument("-m", "--margin", type=int, default=50,
                            help="Print margin in dots.")
-    text_menu.add_argument("-f", "--font", type=str, default=None, help="Font face (ok, actually, fontconfig pattern)")
+    text_menu.add_argument("-f", "--font", type=str, default=None, help="Font face, or a number specifying an index into the default table of fonts")
     text_menu.add_argument("-s", "--size", type=int, default=None, help="Font size")
     text_menu.add_argument("--preview", action='store_true', help="just show a preview, don't print a label")
     text_menu.add_argument("text", nargs='+', help="Text to print")
