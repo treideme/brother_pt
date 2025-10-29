@@ -97,9 +97,50 @@ The most important command is the `print` command and here is its CLI signature:
       --margin                        Print margin 
       --help                          Show this message and exit.
 
+## Printing text labels
+
+Some people may wish to automatically print text on their labels, rather
+than having to manually generate images first.  For this, `brother_pt` has
+the `text` command, which takes one or more lines of text to be printed as
+parameters (be sure to quote them in your shell!).  Consider something along
+the lines of:
+
+```
+$ brother_pt text --preview "This is a larger label, rendered to your screen only."
+$ brother_pt text "This is a larger label."
+$ brother_pt text -f 1 "This is a single line in a smaller font."
+$ brother_pt text "Here is one line" "and here is a second line."
+$ brother_pt text "A label printer" "prints three lines at a time, but" "only haiku."
+```
+
+You can also specify a font with `--font` and `--size` (both must be
+specified; `--font` takes a fontconfig-style pattern; consider something
+along the lines of `--font "Comic Sans MS:style=Bold" --size 40` to show
+that you are serious about your labels.)
+
+### Default fonts
+
+The default fonts selected are those distributed with the P-Touch software
+-- in particular, the Helsinki font family, which seems to be hinted well
+for black and white rendering on a P-Touch printer.  To install these
+fonts, either [install the latest P-Touch Editor software on your
+Mac](https://www.brother-usa.com/ptouch/ptouch-label-editor-software), or if
+on Linux, download the Windows version of the software and extract the fonts
+with something like:
+
+```
+$ cabextract pew67001.exe ptedit6.msi    # grab the installer bundle out of the InstallShield archive
+$ msiextract ptedit6.msi                 # unpack the installer bundle TO THE CURRENT DIRECTORY
+$ mv .\:Fonts/ Fonts
+$ mv ./Program\ Files/Brother/P-touch\ Editor/6/Fonts/* Fonts/
+$ cp Fonts/BRHE* ~/.local/share/fonts/   # install at least the Helsinki font set
+$ fc-cache -f -v                         # update fontconfig
+```
+
 ## Author
 
  * Thomas Reidemeister
+ * Text rendering support was contributed by Joshua Wise
 
 ## Contributing
 

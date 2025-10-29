@@ -28,6 +28,9 @@ setup(name='brother_pt',
           'pyusb>=1.2.1',
           'Pillow==8.4.0',
           'packbits==0.6',
+          'freetype-py==2.5.1',
+          'fontconfig-py==0.1.2',
+          'vharfbuzz==0.3.1',
       ],
      )
 
