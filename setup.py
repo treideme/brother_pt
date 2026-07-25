@@ -26,7 +26,7 @@ setup(name='brother_pt',
       packages=['brother_pt'],
       install_requires=[
           'pyusb>=1.2.1',
-          'Pillow==8.4.0',
+          'Pillow==12.3.0',
           'packbits==0.6',
       ],
      )
