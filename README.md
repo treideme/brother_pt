@@ -83,19 +83,22 @@ The main user interface of this package is the command line tool `brother_pt`.
 The global options are followed by a command such as `info` or `print`.
 The most important command is the `print` command and here is its CLI signature:
 
-    Usage: brother_pt print [OPTIONS] IMAGE [IMAGE] ...
-    
-      Print a label of the provided IMAGE.
-    
+    Usage: brother_pt print [OPTIONS] -f FILE
+
+      Print the label rendered in the image FILE.
+
     Options:
-      -r, --rotate [auto|0|90|180|270]
-                                      Rotate the image (counterclock-wise) by this
-                                      amount of degrees.
-      -t, --threshold FLOAT           The threshold value (in percent) to
-                                      discriminate between black and white pixels.
-      --no-cut                        Don't cut the tape after printing the label.
-      --margin                        Print margin 
-      --help                          Show this message and exit.
+      -r, --rotate {auto,0,90,180,270}
+                            Rotate the image (counter clock-wise) by this amount of
+                            degrees. (default: auto)
+      -t, --threshold THRESHOLD
+                            Threshold in percent (0-100): grayscale/colour pixels
+                            darker than this print as ink. Default: any pixel that
+                            is not pure white is ink.
+      -n, --no-cut          Don't cut the tape after printing the label.
+      -m, --margin MARGIN   Print margin in dots.
+      -f, --file FILE       Image file to print (required).
+      --help                Show this message and exit.
 
 ## Author
 
