@@ -49,8 +49,8 @@ def do_print(args):
     if args.rotate == 'auto':
         adjusted_image = make_fit(image, found_printer.media_width)
         if adjusted_image is None:
-            print('Could not auto-rotate image, at least one dimension needs to match the tape width (%i, %i) vs %i',
-                  (image.width, image.height, required_height), file=sys.stderr)
+            print('Could not auto-rotate image; at least one dimension needs to match the tape width: '
+                  '(%i, %i) vs %i' % (image.width, image.height, required_height), file=sys.stderr)
             return 1
     elif args.rotate == '0':
         adjusted_image = image
@@ -61,14 +61,14 @@ def do_print(args):
     elif args.rotate == '270':
         adjusted_image = image.rotate(270, expand=True)
     else:
-        print('Invalid rotation specified %s', file=sys.stderr)
+        print('Invalid rotation specified: %s' % args.rotate, file=sys.stderr)
         return 1
     if adjusted_image.height != required_height:
-        print('Height of output image does not match tape-width (%i, %i) vs %i',
+        print('Height of output image does not match tape-width: (%i, %i) vs %i' %
               (adjusted_image.width, adjusted_image.height, required_height), file=sys.stderr)
         return 1
 
-    image = select_raster_channel(adjusted_image)
+    image = select_raster_channel(adjusted_image, args.threshold)
 
     # Margin check
     margin = args.margin
@@ -80,7 +80,7 @@ def do_print(args):
     # Raster image
     data = raster_image(image, found_printer.media_width)
 
-    found_printer.print_data(data, margin)
+    found_printer.print_data(data, margin, cut=not args.no_cut)
 
     return 0
 
@@ -125,9 +125,11 @@ def cli():
                             choices=['auto', '0', '90', '180', '270'],
                             help='Rotate the image (counter clock-wise) by this amount of degrees. '
                                  '(default: %(default)s)')
-    #print_menu.add_argument("-t", "--threshold", type=float, default=0.1,
-    #                        help="The threshold value (in percent) to discriminate between black and white pixels.")
-    #print_menu.add_argument("-n", "--no-cut", action='store_true', help="Don't cut the tape after printing the label.")
+    print_menu.add_argument("-t", "--threshold", type=float, default=None,
+                            help="Threshold in percent (0-100): grayscale/colour pixels darker than this "
+                                 "print as ink. Default: any pixel that is not pure white is ink.")
+    print_menu.add_argument("-n", "--no-cut", action='store_true',
+                            help="Don't cut the tape after printing the label.")
     print_menu.add_argument("-m", "--margin", type=int, default=0,
                             help="Print margin in dots.")
     print_menu.add_argument("-f", "--file", type=str, required=True, help="Image file to print")

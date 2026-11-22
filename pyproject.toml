@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "brother_pt"
+dynamic = ["version"]
+description = "Python package for the raster language protocol of the Brother PT series of connected label printers"
+authors = [{name = "Thomas Reidemeister", email = "treideme@gmail.com"}]
+license = {text = "Apache-2.0"}
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "pyusb>=1.2.1",
+    "Pillow>=10",
+    "packbits>=0.6",
+]
+
+[project.urls]
+Homepage = "https://github.com/treideme/brother_pt"
+
+# The README documents a `brother_pt` command; the old setup.py defined no
+# entry point, so only `python -m brother_pt` worked. Wire it up here.
+[project.scripts]
+brother_pt = "brother_pt.__main__:cli"
+
+[tool.setuptools]
+packages = ["brother_pt"]
+
+[tool.setuptools.dynamic]
+version = {attr = "brother_pt.VERSION"}

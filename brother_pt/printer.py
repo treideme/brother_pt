@@ -77,14 +77,18 @@ class BrotherPt:
         try:
             data = self._dev.read(USB_IN_EP_ID, length, USB_TRX_TIMEOUT_MS)
         except usb.core.USBError as e:
-            raise RuntimeError("IO timeout while reading from printer")
+            raise RuntimeError("IO error while reading from printer: %s" % e) from e
         return data
 
-    def update_status(self):
+    def update_status(self, max_attempts: int = 10):
         self.__write(invalidate())
         self.__write(initialize())
         status_information = b''
+        attempts = 0
         while len(status_information) == 0:
+            attempts += 1
+            if attempts > max_attempts:
+                raise RuntimeError("printer did not return a status reply after %i attempts" % max_attempts)
             self.__write(status_information_request())
             status_information = self.__read(STATUS_MESSAGE_LENGTH)
 
@@ -109,11 +113,11 @@ class BrotherPt:
     def text_color(self) -> TextColor:
         return self._text_color
 
-    def print_data(self, data:bytes, margin_px:int):
+    def print_data(self, data:bytes, margin_px:int, cut:bool = True):
         self.__write(enter_dynamic_command_mode())
         self.__write(enable_status_notification())
         self.__write(print_information(data, self.media_width))
-        self.__write(set_mode())
+        self.__write(set_mode(Mode.AUTO_CUT if cut else Mode(0)))
         self.__write(set_advanced_mode())
         self.__write(margin_amount(margin_px))
         self.__write(set_compression_mode())
@@ -150,14 +154,14 @@ class BrotherPt:
                         error_message = error_message[:-1]
                     raise RuntimeError(error_message)
 
-    def print_image(self, image: Image, margin_px: int = 0):
+    def print_image(self, image: Image, margin_px: int = 0, cut: bool = True, threshold: float = None):
         self.update_status()
-        image = prepare_image(image, self.media_width)
+        image = prepare_image(image, self.media_width, threshold)
         if (image.width + margin_px) < MINIMUM_TAPE_POINTS:
             warnings.warn("Image (%i) + cut margin (%i) is smaller than minimum tape width (%i) ... "
                           "cutting length will be extended" % (image.width, margin_px, MINIMUM_TAPE_POINTS))
         data = raster_image(image, self.media_width)
-        self.print_data(data, margin_px)
+        self.print_data(data, margin_px, cut)
 
 
 if __name__ == '__main__':
