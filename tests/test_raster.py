@@ -96,6 +96,31 @@ class MakeFit(unittest.TestCase):
         self.assertIsNone(raster.make_fit(Image.new("L", (80, 80)), 9))
 
 
+class FitToTape(unittest.TestCase):
+    def setUp(self):
+        self.h = MediaWidthToTapeMargin.to_print_width(12)  # 70
+
+    def test_square_scales_to_tape_height(self):
+        # issue #4: a 111x111 QR on 12mm tape must print, scaled to 70px tall.
+        out = raster.fit_to_tape(Image.new("1", (111, 111), 1), 12)
+        self.assertEqual(out.height, self.h)
+        self.assertEqual(out.width, self.h)
+
+    def test_landscape_keeps_aspect(self):
+        out = raster.fit_to_tape(Image.new("L", (200, 100)), 12)
+        self.assertEqual(out.height, self.h)
+        self.assertEqual(out.width, round(200 * self.h / 100))
+
+    def test_portrait_is_rotated_so_long_side_runs_along_tape(self):
+        out = raster.fit_to_tape(Image.new("L", (100, 200)), 12)
+        self.assertEqual(out.height, self.h)
+        self.assertGreater(out.width, out.height)
+
+    def test_exact_height_is_unchanged(self):
+        img = Image.new("L", (123, self.h))
+        self.assertEqual(raster.fit_to_tape(img, 12).size, (123, self.h))
+
+
 class RasterImage(unittest.TestCase):
     def test_output_length_is_16_bytes_per_column(self):
         h = MediaWidthToTapeMargin.to_print_width(9)

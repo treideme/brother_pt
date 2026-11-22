@@ -49,9 +49,14 @@ def do_print(args):
     if args.rotate == 'auto':
         adjusted_image = make_fit(image, found_printer.media_width)
         if adjusted_image is None:
-            print('Could not auto-rotate image; at least one dimension needs to match the tape width: '
-                  '(%i, %i) vs %i' % (image.width, image.height, required_height), file=sys.stderr)
-            return 1
+            # No dimension matches the tape; scale the image to fit instead of
+            # refusing it. See issue #4.
+            original = (image.width, image.height)
+            adjusted_image = fit_to_tape(image, found_printer.media_width)
+            print('Scaled image from %ix%i to %ix%i to fit the %dpx tape height. '
+                  'For barcodes/QR, render at %dpx height for the sharpest result.' %
+                  (original[0], original[1], adjusted_image.width, adjusted_image.height,
+                   required_height, required_height), file=sys.stderr)
     elif args.rotate == '0':
         adjusted_image = image
     elif args.rotate == '90':
