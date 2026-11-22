@@ -27,6 +27,25 @@ def make_fit(image: Image, media_width: int):
     return image
 
 
+def fit_to_tape(image: Image, media_width: int):
+    """Scale ``image`` so its height matches the tape's print width.
+
+    Unlike :func:`make_fit`, which needs one dimension to already match, this
+    resizes to fit any image. The longer side is placed along the tape, then the
+    image is scaled proportionally so its height equals the print width. Line art
+    (1-bit) is scaled with nearest-neighbour to keep edges hard; other images use
+    Lanczos.
+    """
+    target = MediaWidthToTapeMargin.to_print_width(media_width)
+    if image.width < image.height:
+        image = image.transpose(Image.ROTATE_90)
+    if image.height == target:
+        return image
+    new_width = max(1, round(image.width * target / image.height))
+    resample = Image.NEAREST if image.mode == "1" else Image.LANCZOS
+    return image.resize((new_width, target), resample)
+
+
 def has_transparency(img):
     if img.info.get("transparency", None) is not None:
         return True

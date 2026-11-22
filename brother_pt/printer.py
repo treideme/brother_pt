@@ -25,7 +25,7 @@ from .raster import *
 
 def find_printers(serial=None):
     found_printers = []
-    for product_id in SupportedPrinterIDs:
+    for product_id in SUPPORTED_MODELS:
         dev = usb.core.find(idVendor=USBID_BROTHER, idProduct=product_id)
         if dev is not None:
             if serial is not None:
@@ -37,6 +37,20 @@ def find_printers(serial=None):
                 found_printers.append(dev)
 
     return found_printers
+
+
+def find_unsupported_printers():
+    """Connected Brother printers that are recognised but this path can't drive.
+
+    Returns a list of (name, reason) so the CLI can explain why a printer that is
+    plugged in isn't usable (360-dpi head, special init, or P-Lite mode) instead
+    of silently reporting no printer.
+    """
+    seen = []
+    for product_id, (name, reason) in UNSUPPORTED_MODELS.items():
+        if usb.core.find(idVendor=USBID_BROTHER, idProduct=product_id) is not None:
+            seen.append((name, reason))
+    return seen
 
 
 class BrotherPt:
