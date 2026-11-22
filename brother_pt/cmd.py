@@ -25,10 +25,54 @@ USB_IN_EP_ID = 0x81
 USB_TRX_TIMEOUT_MS = 15000
 
 
-class SupportedPrinterIDs(IntEnum):
-    E550W = 0x2060
-    P750W = 0x2062
-    P710BT = 0x20af
+class ModelFlag(IntFlag):
+    PRECUT = 0x01       # supports pre-cut-blank-tape behaviour
+    P700_INIT = 0x02    # emits a status frame after the raster-mode switch
+    USE_INFO_CMD = 0x04  # requires the ESC i z print-information command
+
+
+# Models this driver's 128-pin / 180-dpi raster path drives directly. Verified
+# against Brother's "Raster Command Reference" for PT-E550W/P750W/P710BT and the
+# PT-P900 reference (identical ESC i z layout), cross-checked with the model
+# table in ptouch-print (git.familie-radermacher.ch/linux/ptouch-print).
+# (pid: (name, flags)). All are USB vendor 0x04f9, 128 pins, 180 dpi.
+SUPPORTED_MODELS = {
+    0x2060: ("PT-E550W", ModelFlag(0)),
+    0x2062: ("PT-P750W", ModelFlag.P700_INIT),
+    0x20af: ("PT-P710BT", ModelFlag.PRECUT),
+    # --- same 128-pin / 180-dpi wire format, added for broad support ---
+    0x205f: ("PT-E500", ModelFlag(0)),
+    0x205e: ("PT-H500", ModelFlag.PRECUT),
+    0x2061: ("PT-P700", ModelFlag.P700_INIT | ModelFlag.PRECUT),
+    0x2073: ("PT-D450", ModelFlag.USE_INFO_CMD),
+    0x2074: ("PT-D600", ModelFlag(0)),
+    0x2007: ("PT-2420PC", ModelFlag(0)),
+    0x2011: ("PT-2450PC", ModelFlag(0)),
+    0x202d: ("PT-2430PC", ModelFlag.PRECUT),
+    0x201f: ("PT-2700", ModelFlag.PRECUT),
+}
+
+# Recognised Brother label printers this path does NOT drive correctly. Kept so
+# the CLI can say *why* rather than silently ignoring a connected printer.
+# (pid: (name, reason)).
+UNSUPPORTED_MODELS = {
+    # 360-dpi / wide-format heads: different row width, needs a separate path.
+    0x2083: ("PT-P900", "360 dpi / 560-pin head not yet supported"),
+    0x2085: ("PT-P900W", "360 dpi / 560-pin head not yet supported"),
+    0x2086: ("PT-P950NW", "360 dpi / 560-pin head not yet supported"),
+    0x20c7: ("PT-P910BT", "360 dpi / 560-pin head not yet supported"),
+    0x203c: ("PT-9700PC", "360 dpi / 384-pin head not yet supported"),
+    # Need a model-specific "magic" init sequence (ptouch-print D460BT_MAGIC).
+    0x20df: ("PT-D410", "needs model-specific init not yet implemented"),
+    0x20e0: ("PT-D460BT", "needs model-specific init not yet implemented"),
+    0x20e1: ("PT-D610BT", "needs model-specific init not yet implemented"),
+    0x2201: ("PT-E310BT", "needs model-specific init not yet implemented"),
+    0x2203: ("PT-E560BT", "needs model-specific init not yet implemented"),
+    # P-Lite mass-storage mode: the printer does NOT accept raster in this mode.
+    0x2030: ("PT-1230PC (P-Lite mode)", "switch the printer out of P-Lite/EL mode to print"),
+    0x2064: ("PT-P700 (P-Lite mode)", "switch the printer out of P-Lite/EL mode to print"),
+    0x2065: ("PT-P750W (P-Lite mode)", "switch the printer out of P-Lite/EL mode to print"),
+}
 
 
 STATUS_MESSAGE_LENGTH = 32

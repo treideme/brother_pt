@@ -100,6 +100,13 @@ The most important command is the `print` command and here is its CLI signature:
       -f, --file FILE       Image file to print (required).
       --help                Show this message and exit.
 
+## Supported printers
+
+The driver drives the 128-pin / 180-dpi P-touch raster family (PT-E550W, P750W,
+P710BT and several more). The full list, the recognised-but-unsupported models
+(360-dpi PT-P900 family, D460BT series, P-Lite mode) and the Brother manual
+references are in [docs/MODELS.md](docs/MODELS.md).
+
 ## Author
 
  * Thomas Reidemeister

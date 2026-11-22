@@ -85,16 +85,24 @@ def do_print(args):
     return 0
 
 
+def _report_unsupported():
+    """Print a hint for any recognised-but-unsupported printer that is attached."""
+    for name, reason in find_unsupported_printers():
+        print("Note: %s is connected but not supported -- %s" % (name, reason), file=sys.stderr)
+
+
 def list_printers(serial):
     printers = find_printers(serial)
     if len(printers) == 0:
         print("No supported printers found, make sure the device is switched on", file=sys.stderr)
+        _report_unsupported()
         return 1
     print("Discovered printers ...")
     print("      Vendor\tModel\t\tSerial")
     for i, found_printer in enumerate(printers):
         print(" (%2i) %s\t%s\t%s" %
               (i+1, found_printer.manufacturer, found_printer.product, found_printer.serial_number))
+    _report_unsupported()
 
     return 0
 
