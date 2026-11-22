@@ -17,6 +17,9 @@ import argparse
 
 from brother_pt import VERSION
 from .printer import *
+from .text import render_text_label
+
+TAPE_WIDTHS_MM = sorted(MediaWidthToTapeMargin.margin)
 
 
 def show_status(serial):
@@ -85,6 +88,43 @@ def do_print(args):
     return 0
 
 
+def do_text(args):
+    if args.tape_mm is not None:
+        height = MediaWidthToTapeMargin.to_print_width(args.tape_mm)
+        found_printer = None
+    else:
+        printers = find_printers(args.printer)
+        if len(printers) == 0:
+            print("No supported printers found, make sure the device is switched on", file=sys.stderr)
+            return 1
+        found_printer = BrotherPt(printers[0].serial_number)
+        height = MediaWidthToTapeMargin.to_print_width(found_printer.media_width)
+
+    try:
+        image = render_text_label(
+            args.text, height, font_path=args.font, font_size=args.size, spacing=args.spacing
+        )
+    except ValueError as exc:
+        print("Cannot render text: %s" % exc, file=sys.stderr)
+        return 1
+    except OSError as exc:  # a bad --font path
+        print("Could not load font %r: %s" % (args.font, exc), file=sys.stderr)
+        return 1
+
+    if args.output:
+        image.save(args.output)
+        print("Wrote %s (%ix%i)" % (args.output, image.width, image.height))
+        return 0
+
+    if found_printer is None:
+        print("--tape-mm renders without a printer; add --output FILE, or drop --tape-mm to print.",
+              file=sys.stderr)
+        return 1
+
+    found_printer.print_image(image, margin_px=args.margin, cut=not args.no_cut)
+    return 0
+
+
 def list_printers(serial):
     printers = find_printers(serial)
     if len(printers) == 0:
@@ -135,6 +175,22 @@ def cli():
     print_menu.add_argument("-f", "--file", type=str, required=True, help="Image file to print")
     print_menu.set_defaults(cmd='print')
 
+    text_menu = subparsers.add_parser('text', help='Print one or more lines of text')
+    text_menu.add_argument("-f", "--font", type=str, default=None,
+                           help="Path to a .ttf/.otf font file (default: Pillow's built-in font).")
+    text_menu.add_argument("-s", "--size", type=int, default=None,
+                           help="Font size in px (default: auto-fit the tape height).")
+    text_menu.add_argument("--spacing", type=int, default=4, help="Pixels of gap between lines.")
+    text_menu.add_argument("-m", "--margin", type=int, default=0, help="Print margin in dots.")
+    text_menu.add_argument("-n", "--no-cut", action='store_true',
+                           help="Don't cut the tape after printing the label.")
+    text_menu.add_argument("--tape-mm", type=int, default=None, choices=TAPE_WIDTHS_MM,
+                           help="Render for this tape width without querying a printer (use with --output).")
+    text_menu.add_argument("-o", "--output", type=str, default=None,
+                           help="Write the rendered label to this PNG instead of printing it.")
+    text_menu.add_argument("text", nargs='+', help="Text to print; one argument per line.")
+    text_menu.set_defaults(cmd='text')
+
     args = parser.parse_args()
 
     if args.version:
@@ -157,6 +213,8 @@ def cli():
             return 0
     elif args.cmd == 'print':
         return do_print(args)
+    elif args.cmd == 'text':
+        return do_text(args)
 
     return 0
 

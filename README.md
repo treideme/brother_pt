@@ -100,7 +100,44 @@ The most important command is the `print` command and here is its CLI signature:
       -f, --file FILE       Image file to print (required).
       --help                Show this message and exit.
 
+## Printing text
+
+To print text without first generating an image, use the `text` command. It
+takes one or more lines of text (one argument per line) and renders them to fit
+the tape height, using Pillow's built-in font — no extra font packages or files
+are needed:
+
+```
+$ brother_pt text "brave-river"
+$ brother_pt text "Line one" "and line two"
+```
+
+By default the font size auto-fits the tape; override it with `--size`, and
+supply your own `.ttf`/`.otf` with `--font PATH`. To preview without a printer
+connected, render to a PNG instead of printing:
+
+```
+$ brother_pt text --tape-mm 9 -o label.png "brave-river"
+```
+
+      Options:
+      -f, --font FONT       Path to a .ttf/.otf font (default: built-in font).
+      -s, --size SIZE       Font size in px (default: auto-fit the tape height).
+      --spacing SPACING     Pixels of gap between lines. (default: 4)
+      -m, --margin MARGIN   Print margin in dots. (default: 0)
+      -n, --no-cut          Don't cut the tape after printing.
+      --tape-mm {4,6,9,12,18,24}
+                            Render for this tape width without querying a
+                            printer (use with --output).
+      -o, --output FILE     Write the rendered label to this PNG instead of
+                            printing it.
+      --help                Show this message and exit.
+
 ## Author
+
+ * Thomas Reidemeister
+
+Native text printing was requested by Joshua Wise ([#3](https://github.com/treideme/brother_pt/pull/3)).
 
  * Thomas Reidemeister
 
