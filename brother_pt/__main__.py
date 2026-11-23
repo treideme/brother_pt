@@ -121,6 +121,9 @@ def do_text(args):
     except OSError as exc:  # a bad --font path
         print("Could not load font %r: %s" % (args.font, exc), file=sys.stderr)
         return 1
+    except ImportError as exc:  # a fontconfig pattern without the [fontconfig] extra
+        print("Cannot render text: %s" % exc, file=sys.stderr)
+        return 1
 
     if args.output:
         image.save(args.output)

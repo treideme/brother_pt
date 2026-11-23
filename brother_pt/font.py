@@ -280,7 +280,10 @@ class Font(object):
         previous_char = None
         outbuffer = Bitmap(width, height)
 
-        hb_buf = self.harfbuzz.shape(text)
+        # Shape with the same features as text_dimensions(), so the width
+        # measured for the canvas matches the glyphs actually drawn (kerning and
+        # ligatures can change advances and glyph counts otherwise).
+        hb_buf = self.harfbuzz.shape(text, {"features": {"kern": True, "liga": True}})
 
         for info, pos in zip(hb_buf.glyph_infos, hb_buf.glyph_positions):
             glyph = self.glyph_for_glyphid(info.codepoint)

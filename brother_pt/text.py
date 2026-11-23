@@ -32,6 +32,7 @@ polarity the raster path inks correctly.
 """
 
 import os
+import warnings
 
 from PIL import ImageOps
 
@@ -41,6 +42,18 @@ DEFAULT_SPACING = 4  # px of white between stacked lines
 
 # A fontconfig pattern that resolves to a usable font on a stock Linux box.
 DEFAULT_FONT_PATTERN = "sans-serif"
+
+# Smallest size the auto-fit will choose; below this, text is illegible on tape.
+MIN_FONT_SIZE = 4
+
+# Suffixes that mark a --font argument as a font file rather than a fontconfig
+# pattern (patterns like "Helsinki Narrow:style=Bold" carry none of these).
+_FONT_FILE_SUFFIXES = (".ttf", ".otf", ".ttc", ".otc")
+
+
+def _looks_like_font_path(s):
+    """True if ``s`` is meant as a font file path rather than a fontconfig pattern."""
+    return "/" in s or "\\" in s or s.lower().endswith(_FONT_FILE_SUFFIXES)
 
 
 def _fontconfig_available():
@@ -81,6 +94,11 @@ def _make_font(size, font_path):
     if font_path and os.path.exists(font_path):
         return Font(filename=font_path, size=size)
     if font_path:
+        if _looks_like_font_path(font_path):
+            # A path-like argument that does not exist: fail loudly instead of
+            # silently handing it to fontconfig, which would match some default
+            # font and print in the wrong typeface.
+            raise FileNotFoundError("font file not found: %s" % font_path)
         return Font(pattern=font_path, size=size)  # a fontconfig pattern
     if _fontconfig_available():
         return Font(pattern=DEFAULT_FONT_PATTERN, size=size)
@@ -100,13 +118,22 @@ def _stack_height(lines, font, spacing):
 
 
 def _fit_font_size(lines, height, font_path, spacing):
-    """The largest font size whose stacked lines fit within ``height`` px."""
-    best = 1
-    for size in range(4, height + 1):
+    """The largest font size whose stacked lines fit within ``height`` px.
+
+    Raises ``ValueError`` if even the smallest legible size does not fit, rather
+    than returning a size that renders an unreadable one-pixel sliver.
+    """
+    best = None
+    for size in range(MIN_FONT_SIZE, height + 1):
         if _stack_height(lines, _make_font(size, font_path), spacing) <= height:
             best = size
         else:
             break
+    if best is None:
+        raise ValueError(
+            "text does not fit in %d px of tape height; use fewer lines, "
+            "shorter text, or a wider tape" % height
+        )
     return best
 
 
@@ -129,10 +156,20 @@ def render_text_label(lines, height, *, font_path=None, font_size=None, spacing=
         raise ValueError("no text to print")
     if height < 1:
         raise ValueError("tape height must be positive")
+    if font_size is not None and font_size < 1:
+        raise ValueError("font size must be positive")
 
+    explicit_size = font_size is not None
     if font_size is None:
         font_size = _fit_font_size(lines, height, font_path, spacing)
     font = _make_font(font_size, font_path)
+
+    if explicit_size:
+        stack = _stack_height(lines, font, spacing)
+        if stack > height:
+            warnings.warn(
+                "text is %d px tall but the tape is only %d px; it will be clipped"
+                % (stack, height), stacklevel=2)
 
     bitmap = font.render_texts(
         lines, height=height, vcenter=True, hcenter=False, spacing=spacing
