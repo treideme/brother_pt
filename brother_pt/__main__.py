@@ -190,7 +190,10 @@ def cli():
 
     text_menu = subparsers.add_parser('text', help='Print one or more lines of text')
     text_menu.add_argument("-f", "--font", type=str, default=None,
-                           help="Path to a .ttf/.otf font file (default: Pillow's built-in font).")
+                           help="A .ttf/.otf font file path, or a fontconfig pattern "
+                                "(e.g. 'Helsinki Narrow:style=Bold'). "
+                                "Default: a stock sans-serif. For CJK pass a CJK font, "
+                                "e.g. 'Noto Sans CJK JP'.")
     text_menu.add_argument("-s", "--size", type=int, default=None,
                            help="Font size in px (default: auto-fit the tape height).")
     text_menu.add_argument("--spacing", type=int, default=4, help="Pixels of gap between lines.")
