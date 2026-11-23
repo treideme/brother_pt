@@ -32,7 +32,6 @@
 
 from math import ceil
 
-import fontconfig
 import freetype
 from vharfbuzz import Vharfbuzz
 from PIL import Image
@@ -145,6 +144,14 @@ class Glyph(object):
 class Font(object):
     def __init__(self, filename = None, pattern = None, size = 24):
         if pattern:
+            try:
+                import fontconfig
+            except ImportError as exc:
+                raise ImportError(
+                    "fontconfig is needed to select a font by name/pattern (%r); "
+                    "install it with `pip install \"brother_pt[fontconfig]\"` "
+                    "(Linux only), or pass a .ttf/.otf font file path instead." % pattern
+                ) from exc
             pat = fontconfig.Pattern.parse(pattern)
             pat.default_substitute()
             fontmatch = fontconfig.Config.get_current().font_match(pat)

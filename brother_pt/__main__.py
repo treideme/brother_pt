@@ -17,7 +17,6 @@ import argparse
 
 from brother_pt import VERSION
 from .printer import *
-from .text import render_text_label
 
 TAPE_WIDTHS_MM = sorted(MediaWidthToTapeMargin.margin)
 
@@ -94,6 +93,13 @@ def do_print(args):
 
 
 def do_text(args):
+    try:
+        from .text import render_text_label
+    except ImportError as exc:
+        print('the text command needs the text extra: pip install "brother_pt[text]"\n(%s)' % exc,
+              file=sys.stderr)
+        return 1
+
     if args.tape_mm is not None:
         height = MediaWidthToTapeMargin.to_print_width(args.tape_mm)
         found_printer = None

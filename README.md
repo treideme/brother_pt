@@ -60,6 +60,20 @@ can be found [here](http://www.brother.com/product/dev/index.htm).
 pip install --upgrade git+https://github.com/treideme/brother_pt.git
 ```
 
+The core package prints images and drives the printer, with no heavy
+dependencies. The `text` command additionally needs a font-rendering engine,
+pulled in by the `text` extra:
+
+```bash
+pip install --upgrade "brother_pt[text] @ git+https://github.com/treideme/brother_pt.git"
+```
+
+The `text` extra (FreeType + HarfBuzz) installs on Linux, macOS and Windows.
+On Linux, add the `fontconfig` extra as well to select fonts by name/pattern
+and to get a zero-config default font; `fontconfig` is Linux-only. On Windows
+pass `--font` a `.ttf`/`.otf` file, or rely on the default, which falls back to
+a stock OS font such as Arial.
+
 ## Usage
 
 The main user interface of this package is the command line tool `brother_pt`.
@@ -118,10 +132,11 @@ sharper than greyscale-antialiased text.
 
 By default the font size auto-fits the tape; override it with `--size`. The
 `--font` option accepts **either** a path to a `.ttf`/`.otf` file **or** a
-fontconfig pattern, e.g. `--font "Helsinki Narrow:style=Bold"`. With no
-`--font`, a stock `sans-serif` font is used, so the command works out of the
-box on a plain Linux box. To preview without a printer connected, render to a
-PNG instead of printing:
+fontconfig pattern, e.g. `--font "Helsinki Narrow:style=Bold"` (patterns need
+the `fontconfig` extra, Linux only). With no `--font`, a default font is used
+— `sans-serif` via fontconfig where available, otherwise a stock OS font such
+as Arial — so the command works out of the box. To preview without a printer
+connected, render to a PNG instead of printing:
 
 ```
 $ brother_pt text --tape-mm 9 -o label.png "brave-river"

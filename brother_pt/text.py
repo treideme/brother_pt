@@ -43,16 +43,54 @@ DEFAULT_SPACING = 4  # px of white between stacked lines
 DEFAULT_FONT_PATTERN = "sans-serif"
 
 
+def _fontconfig_available():
+    try:
+        import fontconfig  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
+# Stock OS fonts to fall back on for the default when fontconfig is not
+# installed (e.g. Windows, where fontconfig-py has no wheel). An explicit
+# --font path always takes precedence over these.
+_OS_DEFAULT_FONTS = (
+    r"C:\Windows\Fonts\arial.ttf",
+    r"C:\Windows\Fonts\segoeui.ttf",
+    "/System/Library/Fonts/Supplemental/Arial.ttf",
+    "/Library/Fonts/Arial.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+)
+
+
+def _default_font_file():
+    for path in _OS_DEFAULT_FONTS:
+        if os.path.exists(path):
+            return path
+    return None
+
+
 def _make_font(size, font_path):
     """Build a :class:`~brother_pt.font.Font` at ``size`` px.
 
     ``font_path`` is used as a font file when it names an existing file, and as
-    a fontconfig pattern otherwise. ``None`` falls back to a stock default
-    pattern that always resolves.
+    a fontconfig pattern otherwise. ``None`` uses fontconfig's ``sans-serif``
+    where fontconfig is available, otherwise a stock OS font -- so the command
+    still works on platforms without fontconfig (e.g. Windows).
     """
     if font_path and os.path.exists(font_path):
         return Font(filename=font_path, size=size)
-    return Font(pattern=font_path or DEFAULT_FONT_PATTERN, size=size)
+    if font_path:
+        return Font(pattern=font_path, size=size)  # a fontconfig pattern
+    if _fontconfig_available():
+        return Font(pattern=DEFAULT_FONT_PATTERN, size=size)
+    path = _default_font_file()
+    if path:
+        return Font(filename=path, size=size)
+    raise ValueError(
+        "no default font available without fontconfig; pass --font with a "
+        '.ttf/.otf path, or install "brother_pt[fontconfig]" on Linux'
+    )
 
 
 def _stack_height(lines, font, spacing):

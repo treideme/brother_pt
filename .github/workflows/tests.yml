@@ -24,8 +24,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends fontconfig fonts-dejavu-core
       - name: Install the package and its dependencies
+        # The text tests need the rendering engine ([text]) and, for the
+        # default "sans-serif" pattern, fontconfig ([fontconfig], Linux only).
         run: |
           python -m pip install --upgrade pip
-          pip install .
+          pip install ".[text,fontconfig]"
       - name: Run the unit tests
         run: python -m unittest discover -s tests -t .
