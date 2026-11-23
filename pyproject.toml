@@ -16,6 +16,26 @@ dependencies = [
     "packbits>=0.6",
 ]
 
+[project.optional-dependencies]
+# The `text` command's rendering engine (brother_pt/font.py): FreeType
+# monochrome hinting + HarfBuzz shaping. Both ship Windows wheels, so
+# `pip install "brother_pt[text]"` works on Windows -- pass --font a .ttf/.otf
+# file path there (or install the [fontconfig] extra on Linux for name/pattern
+# lookup and the zero-config default font). Kept OPTIONAL so the core raster/
+# print path -- e.g. a downstream tool that only prints images -- stays
+# dependency-light and Windows-safe.
+# Versions checked on PyPI 2026-11-22.
+text = [
+    "freetype-py>=2.5.1",
+    "vharfbuzz>=0.3.1",
+]
+# Font selection by fontconfig name/pattern, and the zero-config default font.
+# LINUX ONLY -- fontconfig-py publishes no Windows wheel -- so it is a separate
+# extra that the text engine imports lazily.
+fontconfig = [
+    "fontconfig-py>=1.0.3",
+]
+
 [project.urls]
 Homepage = "https://github.com/treideme/brother_pt"
 

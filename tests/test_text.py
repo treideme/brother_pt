@@ -51,6 +51,36 @@ class RenderTextLabel(unittest.TestCase):
         with self.assertRaises(ValueError):
             render_text_label(["x"], 0)
 
+    def test_too_small_to_fit_raises(self):
+        # Many lines on a tiny tape must raise, not render a 1px sliver.
+        with self.assertRaises(ValueError):
+            render_text_label(["a", "b", "c", "d", "e"], 8)
+
+    def test_nonpositive_font_size_raises(self):
+        with self.assertRaises(ValueError):
+            render_text_label(["Hi"], 50, font_size=0)
+
+    def test_missing_font_file_raises(self):
+        # A path-like --font that does not exist must error, not silently fall
+        # back to a default font.
+        with self.assertRaises(FileNotFoundError):
+            render_text_label(["Hi"], 50, font_path="/tmp/not-a-real-font.ttf")
+        with self.assertRaises(FileNotFoundError):
+            render_text_label(["Hi"], 50, font_path="also-missing.otf")
+
+    def test_oversize_font_size_warns_about_clipping(self):
+        with self.assertWarns(UserWarning):
+            render_text_label(["Hi"], 50, font_size=200)
+
+    def test_pattern_without_fontconfig_raises_importerror(self):
+        # On a host without fontconfig (e.g. Windows), a font *pattern* must
+        # raise a clear ImportError rather than something do_text won't catch.
+        import sys
+        from unittest import mock
+        with mock.patch.dict(sys.modules, {"fontconfig": None}):
+            with self.assertRaises(ImportError):
+                render_text_label(["Hi"], 50, font_path="Some Pattern Name")
+
 
 class DoTextOffline(unittest.TestCase):
     """The ``--tape-mm`` + ``--output`` path renders without a printer."""

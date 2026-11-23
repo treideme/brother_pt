@@ -17,7 +17,6 @@ import argparse
 
 from brother_pt import VERSION
 from .printer import *
-from .text import render_text_label
 
 TAPE_WIDTHS_MM = sorted(MediaWidthToTapeMargin.margin)
 
@@ -94,6 +93,13 @@ def do_print(args):
 
 
 def do_text(args):
+    try:
+        from .text import render_text_label
+    except ImportError as exc:
+        print('the text command needs the text extra: pip install "brother_pt[text]"\n(%s)' % exc,
+              file=sys.stderr)
+        return 1
+
     if args.tape_mm is not None:
         height = MediaWidthToTapeMargin.to_print_width(args.tape_mm)
         found_printer = None
@@ -114,6 +120,9 @@ def do_text(args):
         return 1
     except OSError as exc:  # a bad --font path
         print("Could not load font %r: %s" % (args.font, exc), file=sys.stderr)
+        return 1
+    except ImportError as exc:  # a fontconfig pattern without the [fontconfig] extra
+        print("Cannot render text: %s" % exc, file=sys.stderr)
         return 1
 
     if args.output:
@@ -190,7 +199,10 @@ def cli():
 
     text_menu = subparsers.add_parser('text', help='Print one or more lines of text')
     text_menu.add_argument("-f", "--font", type=str, default=None,
-                           help="Path to a .ttf/.otf font file (default: Pillow's built-in font).")
+                           help="A .ttf/.otf font file path, or a fontconfig pattern "
+                                "(e.g. 'Helsinki Narrow:style=Bold'). "
+                                "Default: a stock sans-serif. For CJK pass a CJK font, "
+                                "e.g. 'Noto Sans CJK JP'.")
     text_menu.add_argument("-s", "--size", type=int, default=None,
                            help="Font size in px (default: auto-fit the tape height).")
     text_menu.add_argument("--spacing", type=int, default=4, help="Pixels of gap between lines.")
