@@ -31,7 +31,6 @@
 # THE SOFTWARE.
 
 from math import ceil
-import functools
 
 import fontconfig
 import freetype
@@ -149,11 +148,8 @@ class Font(object):
             pat = fontconfig.Pattern.parse(pattern)
             pat.default_substitute()
             fontmatch = fontconfig.Config.get_current().font_match(pat)
-            print(f"want font {pattern}")
-            print(f"got pattern {fontmatch}")
             filename = fontmatch.get('file')
-            #assert(False)
-        
+
         assert(filename)
 
         self.face = freetype.Face(filename)
@@ -162,22 +158,32 @@ class Font(object):
         self.harfbuzz = Vharfbuzz(filename)
         self.harfbuzz.hbfont.scale = (size * 64, size * 64)
 
-    def __del__(self):
-        del(self.face)
+        # Per-instance glyph caches. A module-level ``functools.cache`` on these
+        # methods would key on ``self`` and so keep every Font (and its FreeType
+        # face) alive for the life of the process; a plain dict on the instance
+        # is collected with the instance.
+        self._char_glyphs = {}
+        self._glyphid_glyphs = {}
 
-    @functools.cache
     def glyph_for_character(self, char):
         # Let FreeType load the glyph for the given character and tell it to render
         # a monochromatic bitmap representation.
-        self.face.load_char(char, freetype.FT_LOAD_RENDER | freetype.FT_LOAD_TARGET_MONO)
-        return Glyph.from_glyphslot(self.face.glyph)
+        cached = self._char_glyphs.get(char)
+        if cached is None:
+            self.face.load_char(char, freetype.FT_LOAD_RENDER | freetype.FT_LOAD_TARGET_MONO)
+            cached = Glyph.from_glyphslot(self.face.glyph)
+            self._char_glyphs[char] = cached
+        return cached
 
-    @functools.cache
     def glyph_for_glyphid(self, glyph):
         # Let FreeType load the glyph for the given character and tell it to render
         # a monochromatic bitmap representation.
-        self.face.load_glyph(glyph, freetype.FT_LOAD_RENDER | freetype.FT_LOAD_TARGET_MONO)
-        return Glyph.from_glyphslot(self.face.glyph)
+        cached = self._glyphid_glyphs.get(glyph)
+        if cached is None:
+            self.face.load_glyph(glyph, freetype.FT_LOAD_RENDER | freetype.FT_LOAD_TARGET_MONO)
+            cached = Glyph.from_glyphslot(self.face.glyph)
+            self._glyphid_glyphs[glyph] = cached
+        return cached
 
     def render_character(self, char):
         glyph = self.glyph_for_character(char)
@@ -210,14 +216,28 @@ class Font(object):
 
         hb_buf = self.harfbuzz.shape(text, {"features": {"kern": True, "liga": True}})
 
+        glyph = None
+        pos = None
+
+        # HarfBuzz hands back ``None`` (not an empty list) when nothing shaped,
+        # e.g. for an empty string -- coerce so the loop is simply skipped.
+        glyph_infos = hb_buf.glyph_infos or []
+        glyph_positions = hb_buf.glyph_positions or []
+
         # For each character in the text string we get the glyph
         # and update the overall dimensions of the resulting bitmap.
-        for info, pos in zip(hb_buf.glyph_infos, hb_buf.glyph_positions):
-            # print(self.harfbuzz.hbfont.glyph_to_string(info.codepoint), info.cluster, pos.x_advance, pos.x_offset, pos.y_offset)
+        for info, pos in zip(glyph_infos, glyph_positions):
             glyph = self.glyph_for_glyphid(info.codepoint)
             max_ascent = max(max_ascent, glyph.ascent)
             max_descent = max(max_descent, glyph.descent)
             width += pos.x_advance // 64
+
+        # An empty string (or one that shapes to no glyphs) has no geometry; the
+        # loop variables are never bound, so return a zero-sized box instead of
+        # raising UnboundLocalError.
+        if glyph is None:
+            return (0, 0, 0)
+
         width -= pos.x_advance // 64
         width += glyph.width
 

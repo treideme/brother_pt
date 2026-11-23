@@ -104,24 +104,32 @@ The most important command is the `print` command and here is its CLI signature:
 
 To print text without first generating an image, use the `text` command. It
 takes one or more lines of text (one argument per line) and renders them to fit
-the tape height, using Pillow's built-in font — no extra font packages or files
-are needed:
+the tape height:
 
 ```
 $ brother_pt text "brave-river"
 $ brother_pt text "Line one" "and line two"
 ```
 
-By default the font size auto-fits the tape; override it with `--size`, and
-supply your own `.ttf`/`.otf` with `--font PATH`. To preview without a printer
-connected, render to a PNG instead of printing:
+Text is rendered with FreeType using monochrome (1-bit) hinting and HarfBuzz
+shaping (engine contributed by Joshua Wise). Monochrome hinting gives crisp
+glyph edges on the printer's 1-bit thermal head, which prints noticeably
+sharper than greyscale-antialiased text.
+
+By default the font size auto-fits the tape; override it with `--size`. The
+`--font` option accepts **either** a path to a `.ttf`/`.otf` file **or** a
+fontconfig pattern, e.g. `--font "Helsinki Narrow:style=Bold"`. With no
+`--font`, a stock `sans-serif` font is used, so the command works out of the
+box on a plain Linux box. To preview without a printer connected, render to a
+PNG instead of printing:
 
 ```
 $ brother_pt text --tape-mm 9 -o label.png "brave-river"
 ```
 
       Options:
-      -f, --font FONT       Path to a .ttf/.otf font (default: built-in font).
+      -f, --font FONT       A .ttf/.otf font file, or a fontconfig pattern
+                            (default: the sans-serif system font).
       -s, --size SIZE       Font size in px (default: auto-fit the tape height).
       --spacing SPACING     Pixels of gap between lines. (default: 4)
       -m, --margin MARGIN   Print margin in dots. (default: 0)
@@ -132,6 +140,25 @@ $ brother_pt text --tape-mm 9 -o label.png "brave-river"
       -o, --output FILE     Write the rendered label to this PNG instead of
                             printing it.
       --help                Show this message and exit.
+
+### Best print quality: the Brother Helsinki fonts
+
+The sharpest results on a P-touch come from the Helsinki font family that ships
+with the Brother P-touch software, which is hinted for black-and-white
+rendering on these printers. To install them, either install the
+[P-touch Editor software](https://www.brother-usa.com/ptouch/ptouch-label-editor-software),
+or on Linux extract them from the Windows installer:
+
+```
+$ cabextract pew67001.exe ptedit6.msi    # grab the installer bundle out of the InstallShield archive
+$ msiextract ptedit6.msi                 # unpack the installer bundle to the current directory
+$ mv .\:Fonts/ Fonts
+$ mv ./Program\ Files/Brother/P-touch\ Editor/6/Fonts/* Fonts/
+$ cp Fonts/BRHE* ~/.local/share/fonts/   # install at least the Helsinki font set
+$ fc-cache -f -v                         # update fontconfig
+```
+
+Then select one with, for example, `--font "Helsinki Narrow:style=Bold"`.
 
 ## Supported printers
 
@@ -144,9 +171,8 @@ references are in [docs/MODELS.md](docs/MODELS.md).
 
  * Thomas Reidemeister
 
-Native text printing was requested by Joshua Wise ([#3](https://github.com/treideme/brother_pt/pull/3)).
-
- * Thomas Reidemeister
+Text rendering support was contributed by Joshua Wise
+([#3](https://github.com/treideme/brother_pt/pull/3)).
 
 ## Contributing
 

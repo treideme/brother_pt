@@ -14,6 +14,12 @@ dependencies = [
     "pyusb>=1.2.1",
     "Pillow>=10",
     "packbits>=0.6",
+    # Text rendering engine (brother_pt/font.py): FreeType monochrome hinting,
+    # HarfBuzz shaping and fontconfig font selection.
+    # Versions checked on PyPI 2026-11-22; pinned to the current release.
+    "freetype-py>=2.5.1",
+    "vharfbuzz>=0.3.1",
+    "fontconfig-py>=1.0.3",
 ]
 
 [project.urls]
